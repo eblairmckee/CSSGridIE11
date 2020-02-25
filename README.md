@@ -1,68 +1,105 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# CSS Grid in IE11
 
-## Available Scripts
+## Usecase
+this all started because there was a heading in chopshop that was a single row with a back button, title, and buttons on the right.
 
-In the project directory, you can run:
+it was using floats and absolute positioning which caused things to break when the text was translated.
 
-### `yarn start`
+I could've fixed it with flexbox, but...... I wanted the grid to be content-aware.
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+where the columns would look like this:
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+`the width of the back button || free space || the width of the button container`
 
-### `yarn test`
+perfect use case for CSS grid.
+```css
+display: grid;
+grid-template-columns: auto 1fr auto;
+```
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+easy, right?
 
-### `yarn build`
+but it doesn't work in IE11. everything broke.
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+e.v.e.r.y.t.h.i.n.g.
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+## What went wrong?
+Well, first thing I did was check if anyone else was using CSS grid in chopshop... Not really.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Then I looked to see if this was even possible to do in IE11. Can I Use says.... [kind of](https://caniuse.com/#feat=css-grid)? IE11 partially supports CSS grid. But what does that mean?! I'll get to that in a second... Let's first look at what happened...
 
-### `yarn eject`
+The component was styled with stylus so I looked at how the CSS the compiled.
+```css
+display: grid;
+-ms-display: grid;
+grid-template-columns: auto 1fr auto;
+-ms-grid-template-columns: auto 1fr auto;
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+apparently adding `-ms-` to everything doesn't work. go figure.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Autoprefixer
+so I did some googling, which said to use [autoprefixer](https://autoprefixer.github.io/), the tried and true solution for getting almost anything in CSS to work in IE11.
+here's what it gave me:
+```css
+display: grid;
+display: -ms-grid;
+grid-template-columns: auto 1fr auto;
+-ms-grid-columns: auto 1fr auto;
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+well that 'works'... as in IE11 recognizes those properties... but the component layout was still broken.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+that's because you have to explicitly tell each child item in the grid where they should live using `grid-column` or the IE equivalent `-ms-grid-column`
 
-## Learn More
+```css
+&:first-child {
+    -ms-grid-column: 1;
+}
+&:nth-child(2) {
+    -ms-grid-column: 2;
+}
+&:nth-child(3) {
+    -ms-grid-column: 3;
+}
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+you'd think this would work........ but it doesn't. For some reason IE11 thinks `first-child` is the parent 🤷‍♀
+instead, you have to add classes to each child and then explicitly declare each child class' placement in the grid.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+and if it takes up more than a column, use `-ms-grid-column-span`
 
-### Code Splitting
+## Side note...
+Another thing to be aware of... by default `display: block` behaves differently in IE11. Usually, if you have a parent container with content inside, the parent will by default be the size of the content. In IE11, the parent is by default the width of its parent.
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+none of the articles I read mentioned this, which tells me they didn't actually test in IE11. Or [read the specs](https://www.w3.org/TR/2011/WD-css3-grid-layout-20110407/). But I did for you, so you don't have to.
 
-### Analyzing the Bundle Size
+## What Doesn't Work
+`grid-template-` columns and row
+`grid-auto-` columns and rows and flow
+`auto-fill` and `auto-fit`
+`fit-content`
+`inline` elements
+    or elements that came after IE11
+`grid` shorthand
+`span`
+`grid-gap`
+    but you can hack your way around it
+`grid-template-areas`
+    but you can hack it with `-ms-grid-` columns and rows
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+## What Does Work
+repeat... it's just syntactically weird
+`(1fr 20px)[12]` instead of `repeat(12, 1fr 20px)`
 
-### Making a Progressive Web App
+`minmax()`
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+## What does this mean for you?
+Don't rely on your CSS compiler to prefix for you, make sure it uses autoprefixer, or add it manually.
 
-### Advanced Configuration
+If you can bring autoprefixer in as a dependency, use it.. just know you have to explicitly tell your grid items where to live.
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+Styled components DOES NOT include prefixing for grid in IE11. You'll have to manually write them out.
+styled components uses stylis to compile everything which still doesn't include prefixes for [ie11](https://github.com/thysultan/stylis.js/issues/119) and they seem reluctant to add them.
+also since styled components are at runtime, autoprefixer won't work because it's at build time..... [💩](https://github.com/styled-components/styled-components/issues/2078)
 
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `yarn build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
