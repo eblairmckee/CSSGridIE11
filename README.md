@@ -3,6 +3,8 @@
 ## Usecase
 this all started because there was a heading in chopshop that was a single row with a back button, title, and buttons on the right.
 
+![before](https://imgur.com/vOsqszE.png)
+
 it was using floats and absolute positioning which caused things to break when the text was translated.
 
 I could've fixed it with flexbox, but...... I wanted the grid to be content-aware.
@@ -20,6 +22,8 @@ grid-template-columns: auto 1fr auto;
 easy, right?
 
 but it doesn't work in IE11. everything broke.
+
+![ie11](https://imgur.com/xu0GGzt.png)
 
 e.v.e.r.y.t.h.i.n.g.
 
@@ -50,8 +54,16 @@ grid-template-columns: auto 1fr auto;
 
 well that 'works'... as in IE11 recognizes those properties... but the component layout was still broken.
 
-that's because you have to explicitly tell each child item in the grid where they should live using `grid-column` or the IE equivalent `-ms-grid-column`
+![still broken](https://imgur.com/hR1DNoN.png)
 
+so I googled some more
+![the only google search the comes up with nothing](https://imgur.com/IfnYZn3.png)
+
+and found the only google search with no results 🤦‍♀
+
+so instead, I looked for the IE11 grid specifications... and learned that yes `-ms-grid-columns` does work, but you also have to explicitly tell each child item in the grid where they should live using `grid-column` or the IE equivalent `-ms-grid-column`
+
+this should work, right?
 ```css
 &:first-child {
     -ms-grid-column: 1;
@@ -64,8 +76,10 @@ that's because you have to explicitly tell each child item in the grid where the
 }
 ```
 
-you'd think this would work........ but it doesn't. For some reason IE11 thinks `first-child` is the parent 🤷‍♀
+........ but it doesn't. For some reason IE11 thinks `first-child` is the parent 🤷‍♀ and just disregards the rest.
 instead, you have to add classes to each child and then explicitly declare each child class' placement in the grid.
+
+![it works](https://imgur.com/nXRHPGN.png)
 
 and if it takes up more than a column, use `-ms-grid-column-span`
 
@@ -76,15 +90,23 @@ none of the articles I read mentioned this, which tells me they didn't actually 
 
 ## What Doesn't Work
 `grid-template-` columns and row
+
 `grid-auto-` columns and rows and flow
+
 `auto-fill` and `auto-fit`
+
 `fit-content`
+
 `inline` elements
     or elements that came after IE11
+
 `grid` shorthand
+
 `span`
+
 `grid-gap`
     but you can hack your way around it
+
 `grid-template-areas`
     but you can hack it with `-ms-grid-` columns and rows
 
@@ -100,6 +122,8 @@ Don't rely on your CSS compiler to prefix for you, make sure it uses autoprefixe
 If you can bring autoprefixer in as a dependency, use it.. just know you have to explicitly tell your grid items where to live.
 
 Styled components DOES NOT include prefixing for grid in IE11. You'll have to manually write them out.
+
 styled components uses stylis to compile everything which still doesn't include prefixes for [ie11](https://github.com/thysultan/stylis.js/issues/119) and they seem reluctant to add them.
+
 also since styled components are at runtime, autoprefixer won't work because it's at build time..... [💩](https://github.com/styled-components/styled-components/issues/2078)
 
